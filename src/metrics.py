@@ -39,9 +39,12 @@ class MetricsCalculator:
         # 確保 TAIEX 的累積報酬與策略的累積報酬日期對齊
         if not self.taiex_returns.empty:
             taiex_cumulative = (1 + self.taiex_returns).cumprod() - 1  # 計算 TAIEX 累積報酬
-            taiex_cumulative = taiex_cumulative.reindex(self.trades_df['date']).fillna(method='ffill')
+            taiex_cumulative = taiex_cumulative.reindex(self.trades_df['date'].drop_duplicates()).fillna(method='ffill')
         else:
-            taiex_cumulative = pd.Series(0, index=self.trades_df['date'])
+            taiex_cumulative = pd.Series(0, index=self.trades_df['date'].drop_duplicates())
+        
+        # 確保 self.trades_df['date'] 內沒有重複的日期
+        self.trades_df = self.trades_df.drop_duplicates(subset=['date'])
         
         cumulative_returns = pd.DataFrame({
             "date": self.trades_df["date"],
@@ -50,6 +53,7 @@ class MetricsCalculator:
         })
         cumulative_returns["excess_return"] = cumulative_returns["strategy_cumulative"] - cumulative_returns["taiex_cumulative"]
         return cumulative_returns
+
 
     def plot_cumulative_returns(self, cumulative_returns):
         plt.figure(figsize=(12, 6))
